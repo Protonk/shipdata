@@ -1,25 +1,23 @@
 
-navguide <-htmlParse("http://www.ucm.es/info/cliwoc/content/CLIWOC15corelimit.htm")
-navtables <- readHTMLTable(navguide)
-format <- navtables[[1]][-1, 1:3]
-format <- as.data.frame(matrix(as.character(unlist(format, recursive = FALSE, use.names = FALSE)), dim(format)), stringsAsFactors = FALSE)
+buildGuide <- function() {
+  navguide <-htmlParse("http://www.ucm.es/info/cliwoc/content/CLIWOC15corelimit.htm")
+  navtables <- readHTMLTable(navguide)
+  format <- navtables[[1]][-1, 1:3]
+  as.data.frame(matrix(as.character(unlist(format, recursive = FALSE, use.names = FALSE)), dim(format)), stringsAsFactors = FALSE)
+}
 
-nav.widths <- c(diff(as.numeric(format[,2])), 2)
-nav.names <- format[,1]
-
-nav.limit <- 245195
-core.url <- "http://www.knmi.nl/cliwoc/download/CLIWOC15corelimit.zip"
-core.filename <- "CLIWOC15corelimit.txt"
-
-reduced.names <- c("YR", "MO", "DY", "HR", "LAT", "LON", "ID", "C1", "D")
 
 buildNavdf <- function(ingest) {
+  nav.limit <- 245195
+  core.url <- "http://www.knmi.nl/cliwoc/download/CLIWOC15corelimit.zip"
+  core.filename <- "CLIWOC15corelimit.txt"
   grabRemote <- function(create.dir = FALSE) {
+    format.ref <- buildGuide()
     temp <- tempfile()
     download.file(core.url, temp)
     navin <- read.fwf(unz(temp, filename = core.filename),
-                      widths = widths,
-                      col.names = nav.names,
+                      widths = c(diff(as.numeric(format.ref[,2])), 2),
+                      col.names = format.ref[,1],
                       stringsAsFactors = FALSE,
                       n = nav.limit)
     unlink(temp)
@@ -38,7 +36,7 @@ buildNavdf <- function(ingest) {
 navtest <- buildNavdf(ingest = "initial")
 
 
-navtest <- navtest[, names(navtest) %in% reduced.names]
+navtest <- navtest[, names(navtest) %in% c("YR", "MO", "DY", "HR", "LAT", "LON", "ID", "C1", "D")]
 navtest[, "Date"] <- as.Date(sprintf("%4.f-%02.f-%2.f", navtest[,"YR"], navtest[,"MO"], navtest[,"DY"]), format = "%Y-%m-%d")
 
 navtest[, "HR"] <- sprintf("%04.f",navtest[,"HR"])
