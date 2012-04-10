@@ -60,5 +60,11 @@ navpre[, "Long"] <- navpre[, "LON"]/100
 diff.lat <- diff(navpre[, "LAT"])
 diff.id <- diff(navpre[, "ID"])
 diff.date <- diff(navpre[, "Date"])
-
+summary(diff.lat[diff.id == 0 & diff.date == 1])
 single.diff <- diff.lat[diff.id == 0 & diff.date == 1]
+
+# Original logbook has some squirrely non-unicode characters
+logbook <- read.csv(file.path(getwd(), "Data", "ShipLogbookID.csv"), strip.white = TRUE)
+logbook[, "ID"] <- 1:nrow(logbook)
+logbook <- logbook[logbook[, "Duplicate"] == 0, c("Name", "Ident", "ID")]
+
