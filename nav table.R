@@ -65,6 +65,13 @@ single.diff <- diff.lat[diff.id == 0 & diff.date == 1]
 
 # Original logbook has some squirrely non-unicode characters
 logbook <- read.csv(file.path(getwd(), "Data", "ShipLogbookID.csv"), strip.white = TRUE)
+# I assume the ID numbers in the main file correspond to the rows in the logbook file
 logbook[, "ID"] <- 1:nrow(logbook)
-logbook <- logbook[logbook[, "Duplicate"] == 0, c("Name", "Ident", "ID")]
+logbook <- logbook[logbook[, "Duplicate"] == 0, c("Name", "ID")]
 
+# Add common ship names, drop duplicates
+navpre <- merge(logbook, navpre, by = "ID")
+
+# reorder/rename
+navpre <- navpre[, c("Name","Country", "Date", "YR", "Month", "Lat", "Long", "D")]
+names(navpre) <- c("Name","Country", "Date", "Year", "Month", "Lat", "Long", "WindDir")
