@@ -3,4 +3,6 @@
 .RData
 Data/CLIWOC15corelimit.txt
 Data/corelimit.csv
+Data/.DS_Store
+Data/CLIWOC15Additional
 shipdata.Rproj
