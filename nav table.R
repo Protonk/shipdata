@@ -36,14 +36,9 @@ buildNavdf <- function(ingest) {
          )
 }
 navtest <- buildNavdf(ingest = "initial")
+
+
 navtest <- navtest[, names(navtest) %in% reduced.names]
+navtest[, "Date"] <- as.Date(sprintf("%4.f-%02.f-%2.f", navtest[,"YR"], navtest[,"MO"], navtest[,"DY"]), format = "%Y-%m-%d")
 
-navin <- read.fwf(file.path(getwd(), "Data", core.filename),
-                  widths = nav.widths,
-                  col.names = nav.names,
-                  stringsAsFactors = FALSE,
-                  n = nav.limit)
-
-
-
-# reduce: head(navtest[, names(navtest) %in% reduced.names])
+navtest[, "HR"] <- sprintf("%04.f",navtest[,"HR"])
