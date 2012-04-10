@@ -2,4 +2,5 @@
 .Rhistory
 .RData
 Data/CLIWOC15corelimit.txt
+Data/corelimit.csv
 shipdata.Rproj
