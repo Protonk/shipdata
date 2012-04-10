@@ -25,7 +25,7 @@ buildNavdf <- function(ingest) {
     unlink(temp)
     if (create.dir) {
       if(!file.exists(file.path(getwd(), "Data"))) dir.create(file.path(getwd(), "Data"))
-      write.csv(navin, file.path(project.dir, "Data",  "corelimit.csv"))
+      write.csv(navin, file.path(getwd(), "Data",  "corelimit.csv"))
     }
     return(navin)
   }
