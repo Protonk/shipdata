@@ -104,7 +104,7 @@ gcd.mod <- function(x, n = 1) {
 }
 
 
-navpre[, "Distance"] <- unname(unlist(lapply(cir.list, gcd.mod, n = 1)))
+navpre[, "Distance"] <- unname(unlist(lapply(cir.list, gcd.mod)))
 
 lag.test <- lapply(cir.list, gcd.mod, n = 3)
 
