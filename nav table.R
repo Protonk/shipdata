@@ -46,20 +46,20 @@ buildNavdf <- function(ingest) {
 # local assumes you've saved the data and grabs it from the disk
 # initial gets the data from the website and saves a cleaned csv on disk
 # for now, all of them rely on the logbook being local (which is in the repo)
-navpre <- buildNavdf(ingest = "local")
+nav.pre <- buildNavdf(ingest = "local")
 
 # Drops all but date/time, lat/long, ship ID, country and wind direction
 # May drop wind direction later but it might be fun to plot
-navpre <- navpre[, names(navpre) %in% c("YR", "MO", "DY", "HR", "LAT", "LON", "ID", "C1", "D")]
+nav.pre <- nav.pre[, names(nav.pre) %in% c("YR", "MO", "DY", "HR", "LAT", "LON", "ID", "C1", "D")]
 
 # About 5 seconds faster than paste(). 
-navpre[, "Date"] <- as.Date(sprintf("%4.f-%02.f-%2.f", navpre[,"YR"], navpre[,"MO"], navpre[,"DY"]), format = "%Y-%m-%d")
+nav.pre[, "Date"] <- as.Date(sprintf("%4.f-%02.f-%2.f", nav.pre[,"YR"], nav.pre[,"MO"], nav.pre[,"DY"]), format = "%Y-%m-%d")
 
 # Build Factor variables and convert lat/long
-navpre[, "Country"] <- as.factor(navpre[, "C1"])
-navpre[, "Month"] <- factor(month.name[navpre[, "MO"]], levels = month.name, ordered = FALSE)
-navpre[, "Lat"] <- navpre[, "LAT"]/100
-navpre[, "Long"] <- navpre[, "LON"]/100
+nav.pre[, "Country"] <- as.factor(nav.pre[, "C1"])
+nav.pre[, "Month"] <- factor(month.name[nav.pre[, "MO"]], levels = month.name, ordered = FALSE)
+nav.pre[, "Lat"] <- nav.pre[, "LAT"]/100
+nav.pre[, "Long"] <- nav.pre[, "LON"]/100
 
 
 # Original logbook has some squirrely non-unicode characters
@@ -69,28 +69,28 @@ logbook[, "ID"] <- 1:nrow(logbook)
 logbook <- logbook[logbook[, "Duplicate"] == 0, c("Name", "ID")]
 
 # Add common ship names, drop duplicates
-navpre <- merge(logbook, navpre, by = "ID")
-row.names(navpre) <- as.character(1:nrow(navpre))
+nav.pre <- merge(logbook, nav.pre, by = "ID")
+row.names(nav.pre) <- as.character(1:nrow(nav.pre))
 
 # reorder/rename
-navpre <- navpre[, c("Name","Country", "YR", "Date",  "Month", "Lat", "Long", "D", "ID")]
-names(navpre) <- c("Name","Country", "Year", "Date", "Month", "Lat", "Long", "WindDir", "ID")
+nav.pre <- nav.pre[, c("Name","Country", "YR", "Date",  "Month", "Lat", "Long", "D", "ID")]
+names(nav.pre) <- c("Name","Country", "Year", "Date", "Month", "Lat", "Long", "WindDir", "ID")
 
 # Within record, sort by date
-navpre <- navpre[do.call(order, navpre[,c("ID", "Date")]), ]
-
-# Lengths in sequence for each ID 
-log.entries <- rle(navpre[, "ID"])$lengths
+nav.pre <- nav.pre[do.call(order, nav.pre[,c("ID", "Date")]), ]
 
 
+
+# This will spit some OOR warnings out, but those are ok,
+# we'll end up removing those anyway.
 grabDistance <- function(lag = 1) {
   library(plyr)
   deg2rad <- function(deg) return(deg*pi/180)
   
-  navcir <- navpre[, "ID", drop = FALSE]
-  navcir[, "SinLat"] <- sin(deg2rad(navpre[, "Lat"]))
-  navcir[, "CosLat"] <- cos(deg2rad(navpre[, "Lat"]))
-  navcir[, "Long"] <- deg2rad(navpre[, "Long"])
+  navcir <- nav.pre[, "ID", drop = FALSE]
+  navcir[, "SinLat"] <- sin(deg2rad(nav.pre[, "Lat"]))
+  navcir[, "CosLat"] <- cos(deg2rad(nav.pre[, "Lat"]))
+  navcir[, "Long"] <- deg2rad(nav.pre[, "Long"])
   
   cir.list <- dlply(navcir, .(ID), transform)
   
@@ -105,13 +105,27 @@ grabDistance <- function(lag = 1) {
       cos(diff(x[, "Long"], lag = n))) * R
     return(c(rep(0, n), d))
   }
-  lapply(cir.list, gcd.mod))
+  lapply(cir.list, gcd.mod)
 }
 
-navpre[, "Distance"] <- unname(unlist(grabDistance()))
+# This is bad behavior but these are expected (kinda)
+# and can be ignored
 
-lag.test <- grabDistance(lag = 3)
+options("warn" = -1)
+nav.pre[, "Distance"] <- unname(unlist(grabDistance()))
+options("warn" = 0)
 
-initial.out <- which(navpre[, "Distance"] > 1000)
-no.port.change <- initial.out[which(navpre[initial.out, "Date"] - navpre[initial.out - 1, "Date"] < 4)]
-
+voyageSplit <- function() {
+  # Split records up by likely unmarked log/port changes
+  port.split <- which(diff(nav.pre[, "Date"]) > 30) + 1
+  dist.split <- which(nav.pre[, "Distance"] > 1000)
+  # Lengths in sequence for each ID
+  log.split <- cumsum(rle(nav.pre[, "ID"])$lengths) + 1
+  # combine voyage splits and prepend first length
+  comb.split <- c(87, diff(sort.int(union(union(port.split, dist.split), log.split))))
+  rep.int(x = 1:length(comb.split), times = comb.split)
+}
+nav.pre[, "Voyage"] <- voyageSplit()
+nav.out <- nav.pre[, c("Name", "Country", "Year", "Date", "Month",
+                      "Lat", "Long", "WindDir", "Voyage")]
+rm(nav.pre, logbook, buildGuide, buildNavdf, voyageSplit, grabDistance)
