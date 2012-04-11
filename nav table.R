@@ -57,11 +57,6 @@ navpre[, "Month"] <- factor(month.name[navpre[, "MO"]], levels = month.name, ord
 navpre[, "Lat"] <- navpre[, "LAT"]/100
 navpre[, "Long"] <- navpre[, "LON"]/100
 
-diff.lat <- diff(navpre[, "LAT"])
-diff.id <- diff(navpre[, "ID"])
-diff.date <- diff(navpre[, "Date"])
-summary(diff.lat[diff.id == 0 & diff.date == 1])
-single.diff <- diff.lat[diff.id == 0 & diff.date == 1]
 
 # Original logbook has some squirrely non-unicode characters
 logbook <- read.csv(file.path(getwd(), "Data", "ShipLogbookID.csv"), strip.white = TRUE)
@@ -73,5 +68,8 @@ logbook <- logbook[logbook[, "Duplicate"] == 0, c("Name", "ID")]
 navpre <- merge(logbook, navpre, by = "ID")
 
 # reorder/rename
-navpre <- navpre[, c("Name","Country", "Date", "YR", "Month", "Lat", "Long", "D")]
-names(navpre) <- c("Name","Country", "Date", "Year", "Month", "Lat", "Long", "WindDir")
+navpre <- navpre[, c("Name","Country", "Date", "YR", "Month", "Lat", "Long", "D", "ID")]
+names(navpre) <- c("Name","Country", "Date", "Year", "Month", "Lat", "Long", "WindDir", "ID")
+
+# Within record, sort by date
+navtest <- navpre[do.call(order, navpre[,c("ID", "Date")]), ]
