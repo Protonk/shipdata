@@ -68,8 +68,8 @@ logbook <- logbook[logbook[, "Duplicate"] == 0, c("Name", "ID")]
 navpre <- merge(logbook, navpre, by = "ID")
 
 # reorder/rename
-navpre <- navpre[, c("Name","Country", "Date", "YR", "Month", "Lat", "Long", "D", "ID")]
-names(navpre) <- c("Name","Country", "Date", "Year", "Month", "Lat", "Long", "WindDir", "ID")
+navpre <- navpre[, c("Name","Country", "YR", "Date",  "Month", "Lat", "Long", "D", "ID")]
+names(navpre) <- c("Name","Country", "Year", "Date", "Month", "Lat", "Long", "WindDir", "ID")
 
 # Within record, sort by date
-navtest <- navpre[do.call(order, navpre[,c("ID", "Date")]), ]
+navpre <- navpre[do.call(order, navpre[,c("ID", "Date")]), ]
