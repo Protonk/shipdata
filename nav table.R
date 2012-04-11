@@ -42,6 +42,10 @@ buildNavdf <- function(ingest) {
          )
 }
 
+# remote grabs the data and doesn't save it locally
+# local assumes you've saved the data and grabs it from the disk
+# initial gets the data from the website and saves a cleaned csv on disk
+# for now, all of them rely on the logbook being local (which is in the repo)
 navpre <- buildNavdf(ingest = "local")
 
 # Drops all but date/time, lat/long, ship ID, country and wind direction
@@ -79,34 +83,34 @@ navpre <- navpre[do.call(order, navpre[,c("ID", "Date")]), ]
 log.entries <- rle(navpre[, "ID"])$lengths
 
 
-library(plyr)
-
-
-
-navcir <- navpre[, "ID", drop = FALSE]
-deg2rad <- function(deg) return(deg*pi/180)
-navcir[, "SinLat"] <- sin(deg2rad(navpre[, "Lat"]))
-navcir[, "CosLat"] <- cos(deg2rad(navpre[, "Lat"]))
-navcir[, "Long"] <- deg2rad(navpre[, "Long"])
-
-cir.list <- dlply(navcir, .(ID), transform)
-
-# Crudely borrowed from http://pineda-krch.com/2010/11/23/great-circle-distance-calculations-in-r/
-
-gcd.mod <- function(x, n = 1) {
-  extent <- nrow(x)
-  if (extent < (1 + n)) return(rep(0, extent))
-  R <- 6371
-  d <- acos(x[1:(extent - n) , "SinLat"]*x[(n + 1):extent, "SinLat"] +
-    x[1:(extent - n) , "CosLat"]*x[(n + 1):extent, "CosLat"] *
-    cos(diff(x[, "Long"], lag = n))) * R
-  return(c(rep(0, n), d))
+grabDistance <- function(lag = 1) {
+  library(plyr)
+  deg2rad <- function(deg) return(deg*pi/180)
+  
+  navcir <- navpre[, "ID", drop = FALSE]
+  navcir[, "SinLat"] <- sin(deg2rad(navpre[, "Lat"]))
+  navcir[, "CosLat"] <- cos(deg2rad(navpre[, "Lat"]))
+  navcir[, "Long"] <- deg2rad(navpre[, "Long"])
+  
+  cir.list <- dlply(navcir, .(ID), transform)
+  
+  # Crudely borrowed from http://pineda-krch.com/2010/11/23/great-circle-distance-calculations-in-r/
+  # But vectorized!
+  gcd.mod <- function(x, n = lag) {
+    extent <- nrow(x)
+    if (extent < (1 + n)) return(rep(0, extent))
+    R <- 6371
+    d <- acos(x[1:(extent - n) , "SinLat"]*x[(n + 1):extent, "SinLat"] +
+      x[1:(extent - n) , "CosLat"]*x[(n + 1):extent, "CosLat"] *
+      cos(diff(x[, "Long"], lag = n))) * R
+    return(c(rep(0, n), d))
+  }
+  lapply(cir.list, gcd.mod))
 }
 
+navpre[, "Distance"] <- unname(unlist(grabDistance()))
 
-navpre[, "Distance"] <- unname(unlist(lapply(cir.list, gcd.mod)))
-
-lag.test <- lapply(cir.list, gcd.mod, n = 3)
+lag.test <- grabDistance(lag = 3)
 
 initial.out <- which(navpre[, "Distance"] > 1000)
 no.port.change <- initial.out[which(navpre[initial.out, "Date"] - navpre[initial.out - 1, "Date"] < 4)]
