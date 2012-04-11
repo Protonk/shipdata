@@ -66,6 +66,7 @@ logbook <- logbook[logbook[, "Duplicate"] == 0, c("Name", "ID")]
 
 # Add common ship names, drop duplicates
 navpre <- merge(logbook, navpre, by = "ID")
+row.names(navpre) <- as.character(1:nrow(navpre))
 
 # reorder/rename
 navpre <- navpre[, c("Name","Country", "YR", "Date",  "Month", "Lat", "Long", "D", "ID")]
@@ -82,12 +83,6 @@ library(plyr)
 
 
 
-gcd.slc <- function(long1, lat1, long2, lat2) {
-  R <- 6371 # Earth mean radius [km]
-  d <- acos(sin(lat1)*sin(lat2) + cos(lat1)*cos(lat2) * cos(long2-long1)) * R
-  return(d) # Distance in km
-}
-
 navcir <- navpre[, "ID", drop = FALSE]
 deg2rad <- function(deg) return(deg*pi/180)
 navcir[, "SinLat"] <- sin(deg2rad(navpre[, "Lat"]))
@@ -98,20 +93,21 @@ cir.list <- dlply(navcir, .(ID), transform)
 
 # Crudely borrowed from http://pineda-krch.com/2010/11/23/great-circle-distance-calculations-in-r/
 
-gcd.mod <- function(x) {
+gcd.mod <- function(x, n = 1) {
   extent <- nrow(x)
-  if (extent < 2) return(rep(0, extent))
+  if (extent < (1 + n)) return(rep(0, extent))
   R <- 6371
-  d <- acos(x[1:(extent - 1) , "SinLat"]*x[2:extent, "SinLat"] +
-    x[1:(extent - 1) , "CosLat"]*x[2:extent, "CosLat"] *
-    cos(diff(x[, "Long"]))) * R
-  return(c(0, d))
+  d <- acos(x[1:(extent - n) , "SinLat"]*x[(n + 1):extent, "SinLat"] +
+    x[1:(extent - n) , "CosLat"]*x[(n + 1):extent, "CosLat"] *
+    cos(diff(x[, "Long"], lag = n))) * R
+  return(c(rep(0, n), d))
 }
 
-gcd.out <- lapply(cir.list, gcd.mod)
 
-# navpre[, "Distance"] <- unlist(gcd.out)
+navpre[, "Distance"] <- unname(unlist(lapply(cir.list, gcd.mod, n = 1)))
 
+lag.test <- lapply(cir.list, gcd.mod, n = 3)
 
+initial.out <- which(navpre[, "Distance"] > 1000)
+no.port.change <- initial.out[which(navpre[initial.out, "Date"] - navpre[initial.out - 1, "Date"] < 4)]
 
-                           
