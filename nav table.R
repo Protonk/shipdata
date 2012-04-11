@@ -73,3 +73,45 @@ names(navpre) <- c("Name","Country", "Year", "Date", "Month", "Lat", "Long", "Wi
 
 # Within record, sort by date
 navpre <- navpre[do.call(order, navpre[,c("ID", "Date")]), ]
+
+# Lengths in sequence for each ID 
+log.entries <- rle(navpre[, "ID"])$lengths
+
+
+library(plyr)
+
+
+
+gcd.slc <- function(long1, lat1, long2, lat2) {
+  R <- 6371 # Earth mean radius [km]
+  d <- acos(sin(lat1)*sin(lat2) + cos(lat1)*cos(lat2) * cos(long2-long1)) * R
+  return(d) # Distance in km
+}
+
+navcir <- navpre[, "ID", drop = FALSE]
+deg2rad <- function(deg) return(deg*pi/180)
+navcir[, "SinLat"] <- sin(deg2rad(navpre[, "Lat"]))
+navcir[, "CosLat"] <- cos(deg2rad(navpre[, "Lat"]))
+navcir[, "Long"] <- deg2rad(navpre[, "Long"])
+
+cir.list <- dlply(navcir, .(ID), transform)
+
+# Crudely borrowed from http://pineda-krch.com/2010/11/23/great-circle-distance-calculations-in-r/
+
+gcd.mod <- function(x) {
+  extent <- nrow(x)
+  if (extent < 2) return(rep(0, extent))
+  R <- 6371
+  d <- acos(x[1:(extent - 1) , "SinLat"]*x[2:extent, "SinLat"] +
+    x[1:(extent - 1) , "CosLat"]*x[2:extent, "CosLat"] *
+    cos(diff(x[, "Long"]))) * R
+  return(c(0, d))
+}
+
+gcd.out <- lapply(cir.list, gcd.mod)
+
+# navpre[, "Distance"] <- unlist(gcd.out)
+
+
+
+                           
