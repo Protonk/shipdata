@@ -17,3 +17,7 @@ The script breaks up data into groups (voyage) by three criteria:
 * Logbook changes. Different logbooks are noted for individual ships. A change in the logbook is a potential indicator that a new voyage has started
 * Large time differences. Within the same logbook if a ship spends more than 30 days without a log entry we can imagine that a new voyage is started.
 * Distance discontinuities. Some of the records jump large distances (great circle) in a day or two. Sometimes this may be from a transcription error and other times it may be because a logbook was transferred. In either case it would break up a chart were we to connect the lines.
+
+## Dependencies 
+
+The script only depends on **plyr** for setting up the distance computation. Because we're using the raw text and not the Access db we don't need to introduce any time sensitive dependencies. 
